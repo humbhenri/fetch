@@ -7,6 +7,7 @@
 #include <sys/utsname.h>
 #include <string.h>
 #include <sys/sysinfo.h>
+#include <stdbool.h>
 
 #define CPU_NAME_LEN 200
 
@@ -35,6 +36,10 @@ char *trim(char *s);
 void read_line_from_cmd(const char *cmd, char *output, size_t len);
 
 void get_gpu(char *output, size_t output_len);
+
+bool has(const char* program);
+
+int get_packages_number();
 
 int main ()
 {
@@ -87,10 +92,11 @@ int main ()
   struct cpu c_info;
   cpu_info(&c_info);
   char cpu_text[500];
-  sprintf(cpu_text, "%s (%d) @ %lf MHz", c_info.name, c_info.cores, c_info.mhz);
+  sprintf(cpu_text, "%s (%d) @ %lf MHz", trim(c_info.name), c_info.cores, c_info.mhz);
 
   char packages[100];
-  read_line_from_cmd("/usr/bin/dpkg-query -l | wc -l", packages, sizeof packages);
+  int n_packages = get_packages_number();
+  sprintf(packages, "%d", n_packages);
 
   char resolution[100];
   read_line_from_cmd("xdpyinfo | awk '/dimensions:/ { print $2; exit }'", resolution, sizeof resolution);
@@ -103,15 +109,15 @@ int main ()
     ,{.key = "OS", .value = os_name()}
     ,{.key = "Kernel", .value = kernel}
     ,{.key = "Uptime", .value = uptime}
-    ,{.key = "Packages", .value = trim(packages)}
+    ,{.key = "Packages", .value = packages}
     ,{.key = "Shell", .value = getenv("SHELL")}
     ,{.key = "Resolution", .value = trim(resolution)}
-    ,{.key = "WM", .value = "Openbox"}
-    ,{.key = "WM Theme", .value = "Adwaita"}
-    ,{.key = "Theme", .value = "Adwaita"}
-    ,{.key = "Icons", .value = "Adwaita"}
+    ,{.key = "WM", .value = getenv("XDG_SESSION_DESKTOP")}
+    /* ,{.key = "WM Theme", .value = "Adwaita"} */
+    /* ,{.key = "Theme", .value = "Adwaita"} */
+    /* ,{.key = "Icons", .value = "Adwaita"} */
     ,{.key = "Terminal", .value = getenv("TERM")}
-    ,{.key = "Terminal font", .value = "Comic Sans"}
+    /* ,{.key = "Terminal font", .value = "Comic Sans"} */
     ,{.key = "CPU", .value = trim(cpu_text)}
     ,{.key = "GPU", .value = gpu}
     ,{.key = "Memory", .value = ram}
@@ -232,6 +238,27 @@ void get_gpu(char *output, size_t output_len)
       }
     }
   }
-
   pclose(fp);
+}
+
+int get_packages_number()
+{
+  int n = -1;
+  char packages[100];
+  if (has("dpkg-query")) {
+    read_line_from_cmd("/usr/bin/dpkg-query -l | wc -l", packages, sizeof packages);
+    n = atoi(packages);
+  } else if (has("rpm")) {
+    read_line_from_cmd("/usr/bin/rpm -qa | wc -l", packages, sizeof packages);
+    n = atoi(packages);
+  }
+  return n;
+}
+
+bool has(const char* program)
+{
+  char find[200];
+  sprintf(find, "type -p %s >/dev/null", program);
+  int res = system(find);
+  return res == 0;
 }
