@@ -1,17 +1,17 @@
 /* neofetch like program */
 
+#include "helpers.h"
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/utsname.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/sysinfo.h>
-#include <stdbool.h>
+#include <sys/utsname.h>
+#include <unistd.h>
 
 #define CPU_NAME_LEN 200
-
-char* os_name();
 
 struct info {
   char *key, *value;
@@ -27,22 +27,15 @@ struct cpu {
 
 void cpu_info(struct cpu *cpu);
 
-char *ltrim(char *s);
-
-char *rtrim(char *s);
-
-char *trim(char *s);
-
-void read_line_from_cmd(const char *cmd, char *output, size_t len);
-
 void get_gpu(char *output, size_t output_len);
-
-bool has(const char* program);
 
 int get_packages_number();
 
-int main ()
-{
+void get_font_name(char *term_program, char *response, size_t len);
+
+void get_terminal_program(char *term, size_t term_len);
+
+int main() {
   char *user = getenv("USER");
   char host[100];
   gethostname(host, 100);
@@ -81,47 +74,54 @@ int main ()
     days = hours / 24;
     hours = hours % 24;
   }
-  sprintf(uptime, "%ld days %ld hours %ld minutes %ld seconds",
-          days, hours, minutes, seconds);
+  sprintf(uptime, "%ld days %ld hours %ld minutes %ld seconds", days, hours,
+          minutes, seconds);
 
   char ram[200];
-  sprintf(ram, "%lu MiB/%lu MiB", 
-          (s_info.totalram - s_info.freeram) / 1024 / 1024, 
+  sprintf(ram, "%lu MiB/%lu MiB",
+          (s_info.totalram - s_info.freeram) / 1024 / 1024,
           s_info.totalram / 1024 / 1024);
 
   struct cpu c_info;
   cpu_info(&c_info);
   char cpu_text[500];
-  sprintf(cpu_text, "%s (%d) @ %lf MHz", trim(c_info.name), c_info.cores, c_info.mhz);
+  sprintf(cpu_text, "%s (%d) @ %lf MHz", trim(c_info.name), c_info.cores,
+          c_info.mhz);
 
   char packages[100];
   int n_packages = get_packages_number();
   sprintf(packages, "%d", n_packages);
 
   char resolution[100];
-  read_line_from_cmd("xdpyinfo | awk '/dimensions:/ { print $2; exit }'", resolution, sizeof resolution);
+  read_line_from_cmd("xdpyinfo | awk '/dimensions:/ { print $2; exit }'",
+                     resolution, sizeof resolution);
 
   char gpu[200];
   get_gpu(gpu, sizeof gpu);
 
-  struct info infos[] = { 
-    {.key = "", .value = userhost}
-    ,{.key = "OS", .value = os_name()}
-    ,{.key = "Kernel", .value = kernel}
-    ,{.key = "Uptime", .value = uptime}
-    ,{.key = "Packages", .value = packages}
-    ,{.key = "Shell", .value = getenv("SHELL")}
-    ,{.key = "Resolution", .value = trim(resolution)}
-    ,{.key = "WM", .value = getenv("XDG_SESSION_DESKTOP")}
-    /* ,{.key = "WM Theme", .value = "Adwaita"} */
-    /* ,{.key = "Theme", .value = "Adwaita"} */
-    /* ,{.key = "Icons", .value = "Adwaita"} */
-    ,{.key = "Terminal", .value = getenv("TERM")}
-    /* ,{.key = "Terminal font", .value = "Comic Sans"} */
-    ,{.key = "CPU", .value = trim(cpu_text)}
-    ,{.key = "GPU", .value = gpu}
-    ,{.key = "Memory", .value = ram}
-  };
+  char term_program[100];
+  get_terminal_program(term_program, sizeof term_program);
+
+  char term_font[100];
+  get_font_name(term_program, term_font, sizeof term_font);
+
+  struct info infos[] = {{.key = "", .value = userhost},
+                         {.key = "OS", .value = os_name()},
+                         {.key = "Kernel", .value = kernel},
+                         {.key = "Uptime", .value = uptime},
+                         {.key = "Packages", .value = packages},
+                         {.key = "Shell", .value = getenv("SHELL")},
+                         {.key = "Resolution", .value = trim(resolution)},
+                         {.key = "WM", .value = getenv("XDG_SESSION_DESKTOP")}
+                         /* ,{.key = "WM Theme", .value = "Adwaita"} */
+                         /* ,{.key = "Theme", .value = "Adwaita"} */
+                         /* ,{.key = "Icons", .value = "Adwaita"} */
+                         ,
+                         {.key = "Terminal", .value = trim(term_program)},
+                         {.key = "Terminal font", .value = trim(term_font)},
+                         {.key = "CPU", .value = cpu_text},
+                         {.key = "GPU", .value = gpu},
+                         {.key = "Memory", .value = ram}};
 
   size_t info_len = sizeof infos / sizeof(struct info);
   for (size_t i = 0; i < info_len; i++) {
@@ -131,27 +131,7 @@ int main ()
   return 0;
 }
 
-char* os_name()
-{
-    #ifdef _WIN32
-    return "Windows 32-bit";
-    #elif _WIN64
-    return "Windows 64-bit";
-    #elif __APPLE__ || __MACH__
-    return "Mac OSX";
-    #elif __linux__
-    return "Linux";
-    #elif __FreeBSD__
-    return "FreeBSD";
-    #elif __unix || __unix__
-    return "Unix";
-    #else
-    return "Other";
-    #endif
-}   
-
-void print_info(struct info *info)
-{
+void print_info(struct info *info) {
   if (strlen(info->key) > 0) {
     printf("\033[0;34m%s:\033[0m %s\n", info->key, info->value);
   } else {
@@ -159,8 +139,7 @@ void print_info(struct info *info)
   }
 }
 
-void cpu_info(struct cpu *cpu)
-{
+void cpu_info(struct cpu *cpu) {
   FILE *fp = fopen("/proc/cpuinfo", "r");
   char line[200];
   int sep = ':';
@@ -168,61 +147,26 @@ void cpu_info(struct cpu *cpu)
     if (strstr(line, "model name") != NULL) {
       char *val = strchr(line, sep);
       if (val != NULL) {
-        strncpy(cpu->name, ltrim(val+1), CPU_NAME_LEN);
+        strncpy(cpu->name, ltrim(val + 1), CPU_NAME_LEN);
       }
     }
     if (strstr(line, "cpu MHz") != NULL) {
       char *val = strchr(line, sep);
       if (val != NULL) {
-        cpu->mhz = atof(ltrim(val+1));
+        cpu->mhz = atof(ltrim(val + 1));
       }
     }
     if (strstr(line, "cpu cores") != NULL) {
       char *val = strchr(line, sep);
       if (val != NULL) {
-        cpu->cores = atoi(ltrim(val+1));
+        cpu->cores = atoi(ltrim(val + 1));
       }
     }
   }
   fclose(fp);
 }
 
-char *ltrim(char *s)
-{
-    while(isspace(*s)) s++;
-    return s;
-
-}
-
-char *rtrim(char *s)
-{
-    char* back = s + strlen(s);
-    while(isspace(*--back));
-    *(back+1) = '\0';
-    return s;
-}
-
-char *trim(char *s)
-{
-    return rtrim(ltrim(s));
-}
-
-void read_line_from_cmd(const char *cmd, char *output, size_t len)
-{
-  FILE *fp = popen(cmd, "r");
-  if (fp == NULL) {
-    printf("Error opening command");
-    exit(1);
-  }
-  if (getline(&output, &len, fp) == -1) {
-    printf("Error opening command");
-    exit(1);
-  }
-  pclose(fp);
-}
-
-void get_gpu(char *output, size_t output_len)
-{
+void get_gpu(char *output, size_t output_len) {
   FILE *fp = popen("lspci -mm", "r");
   if (fp == NULL) {
     printf("Error opening command");
@@ -230,10 +174,11 @@ void get_gpu(char *output, size_t output_len)
   }
   char line[200];
   while (fgets(line, sizeof line, fp) != NULL) {
-    if (strstr(line, "3D") != NULL || strstr(line, "Display") != NULL || strstr(line, "VGA")) {
+    if (strstr(line, "3D") != NULL || strstr(line, "Display") != NULL ||
+        strstr(line, "VGA") != NULL) {
       char *val = strchr(line, ' ');
       if (val != NULL) {
-        strncpy(output, trim(val+1), output_len);
+        strncpy(output, trim(val + 1), output_len);
         break;
       }
     }
@@ -241,12 +186,12 @@ void get_gpu(char *output, size_t output_len)
   pclose(fp);
 }
 
-int get_packages_number()
-{
+int get_packages_number() {
   int n = -1;
   char packages[100];
   if (has("dpkg-query")) {
-    read_line_from_cmd("/usr/bin/dpkg-query -l | wc -l", packages, sizeof packages);
+    read_line_from_cmd("/usr/bin/dpkg-query -l | wc -l", packages,
+                       sizeof packages);
     n = atoi(packages);
   } else if (has("rpm")) {
     read_line_from_cmd("/usr/bin/rpm -qa | wc -l", packages, sizeof packages);
@@ -255,10 +200,47 @@ int get_packages_number()
   return n;
 }
 
-bool has(const char* program)
-{
-  char find[200];
-  sprintf(find, "type -p %s >/dev/null", program);
-  int res = system(find);
-  return res == 0;
+void get_font_name(char *term_program, char *response, size_t len) {
+  term_program = trim(term_program);
+  if (strcasecmp(term_program, "emacs") == 0) {
+    read_line_from_cmd("emacsclient --eval \"(font-get (face-attribute 'default :font) :family)\"", response, len);
+    return;
+  }
+  if (strcasecmp(term_program, "alacritty") == 0) {
+    char *line;
+    size_t line_len = 0;
+    char config_file[300];
+    sprintf(config_file, "%s/.config/alacritty/alacritty.yml", getenv("HOME"));
+    FILE *f = fopen(config_file, "r");
+    if (!f) {
+      puts("File not found");
+      exit(1);
+    }
+    while (getline(&line, &line_len, f) != -1) {
+      if (strstr(line, "#") != NULL) {
+        continue;
+      }
+      if (strstr(line, "family") != NULL) {
+        char *font_name = strchr(line, ':');
+        if (font_name != NULL) {
+          strncpy(response, font_name+1, len);
+        }
+        break;
+      }
+    }
+    fclose(f);
+    return;
+  }
+  strncpy(response, "-", len);
+}
+
+void get_terminal_program(char *term, size_t term_len) {
+  pid_t ppid = getppid(); // this is usually bash, zsh, fish etc
+  char term_pid_cmd[50];
+  char term_pid[50];
+  sprintf(term_pid_cmd, "ps -p %d -o ppid=", ppid);
+  read_line_from_cmd(term_pid_cmd, term_pid, sizeof term_pid);
+  char process_name_cmd[100];
+  sprintf(process_name_cmd, "cat /proc/%s/comm", trim(term_pid));
+  read_line_from_cmd(process_name_cmd, term, term_len);
 }
