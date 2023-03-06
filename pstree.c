@@ -14,6 +14,7 @@ struct pstree_node *get_pstree_head()
 
 int ll_create(char *procname, pid_t pid, pid_t ppid)
 {
+    DEBUG_PRINT("pstree{%s, %d, %d}\n", procname, pid, ppid);
     struct pstree_node *node = malloc(sizeof(struct pstree_node));
     strcpy(node->name, procname);
     node->pid = pid;

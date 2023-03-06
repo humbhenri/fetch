@@ -17,4 +17,13 @@ char* os_name();
 
 bool search_line_containing(const char *substr, const char *filename, char *response, size_t response_len);
 
+#define DEBUG 3
+
+#if defined(DEBUG) && DEBUG > 0
+ #define DEBUG_PRINT(fmt, args...) fprintf(stderr, "DEBUG: %s:%d:%s(): " fmt, \
+    __FILE__, __LINE__, __func__, ##args)
+#else
+ #define DEBUG_PRINT(fmt, args...) /* Don't do anything in release builds */
+#endif
+
 #endif // HELPERS_H_

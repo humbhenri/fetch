@@ -33,8 +33,6 @@ void get_gpu(char *output, size_t output_len);
 
 int get_packages_number();
 
-void get_font_name(char *term_program, char *response, size_t len);
-
 void get_terminal_program(char *term, size_t term_len);
 
 int main() {
@@ -105,7 +103,8 @@ int main() {
   get_terminal_program(term_program, sizeof term_program);
 
   char term_font[100];
-  get_font_name(term_program, term_font, sizeof term_font);
+  // get_font_name(term_program, term_font, sizeof term_font);
+  find_font(term_program, term_font, sizeof term_font);
 
   struct info infos[] = {{.key = "", .value = userhost},
                          {.key = "OS", .value = os_name()},
@@ -200,40 +199,6 @@ int get_packages_number() {
     n = atoi(packages);
   }
   return n;
-}
-
-void get_font_name(char *term_program, char *response, size_t len) {
-  term_program = trim(term_program);
-  if (strcasecmp(term_program, "emacs") == 0) {
-    read_line_from_cmd("emacsclient --eval \"(font-get (face-attribute 'default :font) :family)\"", response, len);
-    return;
-  }
-  if (strcasecmp(term_program, "alacritty") == 0) {
-    char *line;
-    size_t line_len = 0;
-    char config_file[300];
-    sprintf(config_file, "%s/.config/alacritty/alacritty.yml", getenv("HOME"));
-    FILE *f = fopen(config_file, "r");
-    if (!f) {
-      puts("File not found");
-      exit(1);
-    }
-    while (getline(&line, &line_len, f) != -1) {
-      if (strstr(line, "#") != NULL) {
-        continue;
-      }
-      if (strstr(line, "family") != NULL) {
-        char *font_name = strchr(line, ':');
-        if (font_name != NULL) {
-          strncpy(response, font_name+1, len);
-        }
-        break;
-      }
-    }
-    fclose(f);
-    return;
-  }
-  strncpy(response, "-", len);
 }
 
 void get_terminal_program(char *term, size_t term_len) {
