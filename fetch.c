@@ -1,6 +1,8 @@
 /* neofetch like program */
 
 #include "helpers.h"
+#include "pstree.h"
+#include "term_programs.h"
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -235,12 +237,20 @@ void get_font_name(char *term_program, char *response, size_t len) {
 }
 
 void get_terminal_program(char *term, size_t term_len) {
-  pid_t ppid = getppid(); // this is usually bash, zsh, fish etc
-  char term_pid_cmd[50];
-  char term_pid[50];
-  sprintf(term_pid_cmd, "ps -p %d -o ppid=", ppid);
-  read_line_from_cmd(term_pid_cmd, term_pid, sizeof term_pid);
-  char process_name_cmd[100];
-  sprintf(process_name_cmd, "cat /proc/%s/comm", trim(term_pid));
-  read_line_from_cmd(process_name_cmd, term, term_len);
+  int res = catalog_process(getppid());
+  if (res != 0) {
+    printf("error catalog process with pid %d\n", getppid());
+    exit(1);
+  }
+  struct pstree_node *head = get_pstree_head();
+  while (head != NULL) {
+    for (int i=0; TERM_PROGRAMS[i] != NULL; i++) {
+      if (strstr(head->name, TERM_PROGRAMS[i]) != NULL) {
+        strncpy(term, TERM_PROGRAMS[i], term_len);
+        break;
+      }
+    }
+    head = head->next;
+  }
+  pstree_delete();
 }

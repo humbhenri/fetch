@@ -42,7 +42,6 @@ bool has(const char* program)
   char buffer[200];
   sprintf(buffer, "which %s > /dev/null 2>&1", program);
   int res = system(buffer);
-  printf("program %s, res = %d\n", program, res);
   return res == 0;
 }
 
