@@ -39,9 +39,10 @@ void read_line_from_cmd(const char *cmd, char *output, size_t len)
 
 bool has(const char* program)
 {
-  char find[200];
-  sprintf(find, "type -p %s >/dev/null", program);
-  int res = system(find);
+  char buffer[200];
+  sprintf(buffer, "which %s > /dev/null 2>&1", program);
+  int res = system(buffer);
+  printf("program %s, res = %d\n", program, res);
   return res == 0;
 }
 
