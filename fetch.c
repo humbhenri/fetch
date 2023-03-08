@@ -103,7 +103,7 @@ int main() {
   get_terminal_program(term_program, sizeof term_program);
 
   char term_font[100];
-  // get_font_name(term_program, term_font, sizeof term_font);
+
   find_font(term_program, term_font, sizeof term_font);
 
   struct info infos[] = {{.key = "", .value = userhost},

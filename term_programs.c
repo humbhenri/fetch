@@ -14,17 +14,17 @@ const char *TERM_PROGRAMS[] = {
     NULL
 };
 
-void find_font_gnome_terminal(char *response, size_t len) 
+void find_font_gnome_terminal(char *response, size_t len)
 {
     strncpy(response, "TODO", len);
 }
 
-void find_font_emacs(char *response, size_t len) 
+void find_font_emacs(char *response, size_t len)
 {
     read_line_from_cmd("emacsclient --eval \"(font-get (face-attribute 'default :font) :family)\"", response, len);
 }
 
-void find_font_alacritty(char *response, size_t len) 
+void find_font_alacritty(char *response, size_t len)
 {
     char *line;
     size_t line_len = 0;
@@ -51,14 +51,23 @@ void find_font_alacritty(char *response, size_t len)
     return;
 }
 
-void find_font_vscode(char *response, size_t len) 
+void find_font_vscode(char *response, size_t len)
 {
     strncpy(response, "TODO", len);
 }
 
-void find_font_kitty(char *response, size_t len) 
+void find_font_kitty(char *response, size_t len)
 {
-    strncpy(response, "TODO", len);
+    char config_file[100];
+    sprintf(config_file, "%s/.config/kitty/kitty.conf", getenv("HOME"));
+    char line[100];
+    bool found = search_line_containing("font_family", config_file, line, sizeof line);
+    if (found) {
+        char *font_name = strchr(line, ' ');
+        if (font_name != NULL) {
+            strncpy(response, font_name+1, len);
+        }
+    }
 }
 
 void (*font_finders[])(char *, size_t) = {
