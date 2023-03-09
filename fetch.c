@@ -209,11 +209,10 @@ void get_terminal_program(char *term, size_t term_len) {
   }
   struct pstree_node *head = get_pstree_head();
   while (head != NULL) {
-    for (int i=0; TERM_PROGRAMS[i] != NULL; i++) {
-      if (strstr(head->name, TERM_PROGRAMS[i]) != NULL) {
-        strncpy(term, TERM_PROGRAMS[i], term_len);
-        break;
-      }
+    const char *term_found = term_program_exists(head->name);
+    if (term_found != NULL) {
+      strncpy(term, term_found, term_len);
+      break;
     }
     head = head->next;
   }
