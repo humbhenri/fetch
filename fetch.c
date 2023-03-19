@@ -99,11 +99,10 @@ int main() {
   char gpu[200];
   get_gpu(gpu, sizeof gpu);
 
-  char term_program[100];
+  char term_program[100] = "not found";
   get_terminal_program(term_program, sizeof term_program);
 
-  char term_font[100];
-
+  char term_font[100] = "not found";
   find_font(term_program, term_font, sizeof term_font);
 
   struct info infos[] = {{.key = "", .value = userhost},
